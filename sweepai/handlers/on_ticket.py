@@ -519,20 +519,20 @@ def on_ticket(
                 branch=overrided_branch_name,
             )
             # check that repo's directory is non-empty
-            if os.listdir(cloned_repo.cached_dir) == []:
-                logger.info("Empty repo")
-                first_comment = (
-                    "Sweep is currently not supported on empty repositories. Please add some"
-                    f" code to your repository and try again.\n{sep}##"
-                    f" {progress_headers[1]}\n{bot_suffix}{discord_suffix}"
-                )
-                if issue_comment is None:
-                    issue_comment = current_issue.create_comment(
-                        first_comment + BOT_SUFFIX
-                    )
-                else:
-                    issue_comment.edit(first_comment + BOT_SUFFIX)
-                return {"success": False}
+            # if os.listdir(cloned_repo.cached_dir) == []:
+            #     logger.info("Empty repo")
+            #     first_comment = (
+            #         "Sweep is currently not supported on empty repositories. Please add some"
+            #         f" code to your repository and try again.\n{sep}##"
+            #         f" {progress_headers[1]}\n{bot_suffix}{discord_suffix}"
+            #     )
+            #     if issue_comment is None:
+            #         issue_comment = current_issue.create_comment(
+            #             first_comment + BOT_SUFFIX
+            #         )
+            #     else:
+            #         issue_comment.edit(first_comment + BOT_SUFFIX)
+            #     return {"success": False}
             indexing_message = (
                 "I'm searching for relevant snippets in your repository. If this is your first"
                 " time using Sweep, I'm indexing your repository. You can monitor the progress using the progress dashboard"
@@ -644,20 +644,20 @@ def on_ticket(
                         ][0]
                         issue_comment.edit(msg)
 
-            if use_faster_model:
-                edit_sweep_comment(FASTER_MODEL_MESSAGE, -1, add_bonus_message=False)
-                posthog.capture(
-                    username,
-                    "ran_out_of_tickets",
-                    properties={
-                        **metadata,
-                        "duration": round(time() - on_ticket_start_time),
-                    },
-                )
-                return {
-                    "success": False,
-                    "error_message": "We deprecated supporting GPT 3.5.",
-                }
+            # if use_faster_model:
+            #     edit_sweep_comment(FASTER_MODEL_MESSAGE, -1, add_bonus_message=False)
+            #     posthog.capture(
+            #         username,
+            #         "ran_out_of_tickets",
+            #         properties={
+            #             **metadata,
+            #             "duration": round(time() - on_ticket_start_time),
+            #         },
+            #     )
+            #     return {
+            #         "success": False,
+            #         "error_message": "We deprecated supporting GPT 3.5.",
+            #     }
 
             if sandbox_mode:
                 handle_sandbox_mode(
@@ -665,39 +665,40 @@ def on_ticket(
                 )
                 return {"success": True}
 
-            if len(title + summary) < 20:
-                logger.info("Issue too short")
-                edit_sweep_comment(
-                    (
-                        f"Please add more details to your issue. I need at least 20 characters"
-                        f" to generate a plan. Please join our Discord server for support (tracking_id={tracking_id})"
-                    ),
-                    -1,
-                )
-                posthog.capture(
-                    username,
-                    "issue_too_short",
-                    properties={
-                        **metadata,
-                        "duration": round(time() - on_ticket_start_time),
-                    },
-                )
-                return {"success": True}
+            # if len(title + summary) < 20:
+            #     logger.info("Issue too short")
+            #     edit_sweep_comment(
+            #         (
+            #             f"Please add more details to your issue. I need at least 20 characters"
+            #             f" to generate a plan. Please join our Discord server for support (tracking_id={tracking_id})"
+            #         ),
+            #         -1,
+            #     )
+            #     posthog.capture(
+            #         username,
+            #         "issue_too_short",
+            #         properties={
+            #             **metadata,
+            #             "duration": round(time() - on_ticket_start_time),
+            #         },
+            #     )
+            #     return {"success": True}
 
             prs_extracted = PRReader.extract_prs(repo, summary)
             message_summary = summary
-            if prs_extracted:
-                message_summary += "\n\n" + prs_extracted
-                edit_sweep_comment(
-                    create_collapsible(
-                        "I found that you mentioned the following Pull Requests that might be important:",
-                        blockquote(
-                            prs_extracted,
-                        ),
-                    ),
-                    1,
-                )
+            # if prs_extracted:
+            #     message_summary += "\n\n" + prs_extracted
+            #     edit_sweep_comment(
+            #         create_collapsible(
+            #             "I found that you mentioned the following Pull Requests that might be important:",
+            #             blockquote(
+            #                 prs_extracted,
+            #             ),
+            #         ),
+            #         1,
+            #     )
 
+            logger.info("拉取相关代码")
             try:
                 snippets, tree, _ = fetch_relevant_files(
                     cloned_repo,
@@ -724,6 +725,7 @@ def on_ticket(
                     -1,
                 )
                 raise Exception("Failed to fetch files")
+            logger.info("拉取相关代码完成")
             _user_token, g = get_github_client(installation_id)
             repo = g.get_repo(repo_full_name)
             ticket_progress.search_progress.indexing_progress = (
@@ -763,6 +765,10 @@ def on_ticket(
                 ticket_progress=ticket_progress,
             )
 
+            logger.info("检查human_message的值")
+            logger.info(human_message)
+            logger.info(sweep_bot)
+
             # Check repository for sweep.yml file.
             sweep_yml_exists = False
             sweep_yml_failed = False
@@ -795,24 +801,7 @@ def on_ticket(
                         logger.info("The YAML file is valid. No errors found.")
                     break
 
-            # If sweep.yaml does not exist, then create a new PR that simply creates the sweep.yaml file.
-            if not sweep_yml_exists:
-                try:
-                    logger.info("Creating sweep.yaml file...")
-                    config_pr = create_config_pr(sweep_bot, cloned_repo=cloned_repo)
-                    config_pr_url = config_pr.html_url
-                    edit_sweep_comment(message="", index=-2)
-                except SystemExit:
-                    raise SystemExit
-                except Exception as e:
-                    logger.error(
-                        "Failed to create new branch for sweep.yaml file.\n",
-                        e,
-                        traceback.format_exc(),
-                    )
-            else:
-                logger.info("sweep.yaml file already exists.")
-
+            logger.info("分析代码段，生成计划")
             try:
                 # ANALYZE SNIPPETS
                 newline = "\n"
@@ -849,54 +838,54 @@ def on_ticket(
                     1,
                 )
 
-                if do_map:
-                    subissues: list[ProposedIssue] = sweep_bot.generate_subissues()
-                    edit_sweep_comment(
-                        "I'm creating the following subissues:\n\n"
-                        + "\n\n".join(
-                            [
-                                f"#{subissue.title}:\n" + blockquote(subissue.body)
-                                for subissue in subissues
-                            ]
-                        ),
-                        2,
-                    )
-                    for subissue in tqdm(subissues):
-                        subissue.issue_id = repo.create_issue(
-                            title="Sweep: " + subissue.title,
-                            body=subissue.body + f"\n\nParent issue: #{issue_number}",
-                            assignee=username,
-                        ).number
-                    subissues_checklist = "\n\n".join(
-                        [
-                            f"- [ ] #{subissue.issue_id}\n\n"
-                            + blockquote(f"**{subissue.title}**\n{subissue.body}")
-                            for subissue in subissues
-                        ]
-                    )
-                    current_issue.edit(
-                        body=summary + "\n\n---\n\nChecklist:\n\n" + subissues_checklist
-                    )
-                    edit_sweep_comment(
-                        "I finished creating the subissues! Track them at:\n\n"
-                        + "\n".join(
-                            f"* #{subissue.issue_id}" for subissue in subissues
-                        ),
-                        3,
-                        done=True,
-                    )
-                    edit_sweep_comment("N/A", 4)
-                    edit_sweep_comment("I finished creating all the subissues.", 5)
-                    posthog.capture(
-                        username,
-                        "subissues_created",
-                        properties={
-                            **metadata,
-                            "count": len(subissues),
-                            "duration": round(time() - on_ticket_start_time),
-                        },
-                    )
-                    return {"success": True}
+                # if do_map:
+                #     subissues: list[ProposedIssue] = sweep_bot.generate_subissues()
+                #     edit_sweep_comment(
+                #         "I'm creating the following subissues:\n\n"
+                #         + "\n\n".join(
+                #             [
+                #                 f"#{subissue.title}:\n" + blockquote(subissue.body)
+                #                 for subissue in subissues
+                #             ]
+                #         ),
+                #         2,
+                #     )
+                #     for subissue in tqdm(subissues):
+                #         subissue.issue_id = repo.create_issue(
+                #             title="Sweep: " + subissue.title,
+                #             body=subissue.body + f"\n\nParent issue: #{issue_number}",
+                #             assignee=username,
+                #         ).number
+                #     subissues_checklist = "\n\n".join(
+                #         [
+                #             f"- [ ] #{subissue.issue_id}\n\n"
+                #             + blockquote(f"**{subissue.title}**\n{subissue.body}")
+                #             for subissue in subissues
+                #         ]
+                #     )
+                #     current_issue.edit(
+                #         body=summary + "\n\n---\n\nChecklist:\n\n" + subissues_checklist
+                #     )
+                #     edit_sweep_comment(
+                #         "I finished creating the subissues! Track them at:\n\n"
+                #         + "\n".join(
+                #             f"* #{subissue.issue_id}" for subissue in subissues
+                #         ),
+                #         3,
+                #         done=True,
+                #     )
+                #     edit_sweep_comment("N/A", 4)
+                #     edit_sweep_comment("I finished creating all the subissues.", 5)
+                #     posthog.capture(
+                #         username,
+                #         "subissues_created",
+                #         properties={
+                #             **metadata,
+                #             "count": len(subissues),
+                #             "duration": round(time() - on_ticket_start_time),
+                #         },
+                #     )
+                #     return {"success": True}
 
                 logger.info("Fetching files to modify/create...")
                 non_python_count = sum(
@@ -912,6 +901,7 @@ def on_ticket(
                     "is_python_issue",
                     properties={"is_python_issue": is_python_issue},
                 )
+                logger.info("获取需要修改的代码地址")
                 file_change_requests, plan = sweep_bot.get_files_to_change(
                     is_python_issue
                 )
@@ -1033,6 +1023,8 @@ def on_ticket(
                 )
 
                 delete_branch = False
+
+                # 这里会生成代码
 
                 generator = create_pr_changes(
                     file_change_requests,
@@ -1177,7 +1169,7 @@ def on_ticket(
                     logger.info(f"Edited {file_change_request.entity_display}")
                     edit_sweep_comment(checkboxes_contents, 2)
                 if not response.get("success"):
-                    raise Exception(f"Failed to create PR: {response.get('error')}")
+                    raise Exception(f"Failed to create PR in line 1172: {response.get('error')}")
 
                 checkboxes_contents = "\n".join(
                     [
@@ -1744,5 +1736,9 @@ def get_payment_messages(chat_logger: ChatLogger):
         f"{user_type}: I'm using {model_name}. You have {gpt_tickets_left_message}{daily_message}. (tracking ID: <code>{tracking_id}</code>)"
         + (purchase_message if not is_paying_user else "")
     )
+    print("-------------------------------------------------------------------------------------------------------------")
+    print("payment_message=" + payment_message)
+    print("payment_message_start=" + payment_message_start)
+    print("-------------------------------------------------------------------------------------------------------------")
 
     return payment_message, payment_message_start

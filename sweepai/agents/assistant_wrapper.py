@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import time
@@ -200,6 +201,7 @@ def get_json_messages(
     return messages_json
 
 
+# 运行回调
 def run_until_complete(
     thread_id: str,
     run_id: str,
@@ -379,6 +381,9 @@ def openai_assistant_call_helper(
     assistant_name: str | None = None,
     save_ticket_progress: save_ticket_progress_type | None = None,
 ):
+
+    logger.info("call_openai_assistant_call_helper")
+
     file_ids = [] if not uploaded_file_ids else uploaded_file_ids
     file_object = None
     if not file_ids:
@@ -391,6 +396,7 @@ def openai_assistant_call_helper(
             )
             file_ids.append(file_object.id)
 
+    logger.debug("我看看目前的指令")
     logger.debug(instructions)
     # always create new one
     assistant = openai_retry_with_timeout(
@@ -404,6 +410,7 @@ def openai_assistant_call_helper(
     if file_ids:
         logger.info("Uploading files...")
     if request:
+        logger.info("assistant_wrapper 413 line create")
         client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
@@ -413,11 +420,13 @@ def openai_assistant_call_helper(
     if file_ids:
         logger.info("Files uploaded")
     for message in additional_messages:
+        logger.info("为助手添加的消息是：%s", message.content)
         client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
             content=message.content,
         )
+
     run = client.beta.threads.runs.create(
         thread_id=thread.id,
         assistant_id=assistant.id,
@@ -425,6 +434,7 @@ def openai_assistant_call_helper(
         model=model,
     )
     if len(tools) > 1:
+        logger.info("begin run openai client thread")
         return run_until_complete(
             thread_id=thread.id,
             run_id=run.id,
@@ -458,27 +468,32 @@ def openai_assistant_call(
     assistant_name: str | None = None,
     save_ticket_progress: save_ticket_progress_type | None = None,
 ):
-    model = (
-        "gpt-3.5-turbo-1106"
-        if (chat_logger is None or chat_logger.use_faster_model())
-        and not IS_SELF_HOSTED
-        else DEFAULT_GPT4_32K_MODEL
-    )
-    posthog.capture(
-        chat_logger.data.get("username") if chat_logger is not None else "anonymous",
-        "call_assistant_api",
-        {
-            "query": request,
-            "model": model,
-            "username": (
-                chat_logger.data.get("username", "anonymous")
-                if chat_logger is not None
-                else "anonymous"
-            ),
-            "is_self_hosted": IS_SELF_HOSTED,
-            "trace": "".join(traceback.format_list(traceback.extract_stack())),
-        },
-    )
+    model = "gpt-3.5-turbo"
+    # model = (
+    #     "gpt-3.5-turbo-1106"
+    #     if (chat_logger is None or chat_logger.use_faster_model())
+    #     and not IS_SELF_HOSTED
+    #     else DEFAULT_GPT4_32K_MODEL
+    # )
+
+    logger.info("call_assistant_api")
+
+    # posthog.capture(
+    #     chat_logger.data.get("username") if chat_logger is not None else "anonymous",
+    #     "call_assistant_api",
+    #     {
+    #         "query": request,
+    #         "model": model,
+    #         "username": (
+    #             chat_logger.data.get("username", "anonymous")
+    #             if chat_logger is not None
+    #             else "anonymous"
+    #         ),
+    #         "is_self_hosted": IS_SELF_HOSTED,
+    #         "trace": "".join(traceback.format_list(traceback.extract_stack())),
+    #     },
+    # )
+
     retries = range(3)
     for _ in retries:
         try:

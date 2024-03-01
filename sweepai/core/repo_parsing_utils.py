@@ -76,6 +76,10 @@ def directory_to_chunks(
 ) -> tuple[list[Snippet], list[str]]:
     dir_file_count = {}
 
+    print("-------------------------------------------------")
+    print("use directory_to_chunks方法")
+    print("-------------------------------------------------")
+
     def is_dir_too_big(file_name):
         dir_name = os.path.dirname(file_name)
         only_file_name = os.path.basename(dir_name)

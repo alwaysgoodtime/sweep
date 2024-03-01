@@ -55,13 +55,13 @@ def stream_events(repo: Repository, timeout: int = 2, offset: int = 2 * 60):
 
                 if local_time.timestamp() > current_time.timestamp():
                     yield event
-                else:
-                    if DEBUG:
-                        logger.debug(
-                            f"Skipping event {event.id} because it is in the past (local_time={local_time}, current_time={current_time}, i={i})"
-                        )
-            if DEBUG:
-                logger.debug(f"Skipping event {event.id} because it is already handled")
+                # else:
+                #     if DEBUG:
+                #         logger.debug(
+                #             f"Skipping event {event.id} because it is in the past (local_time={local_time}, current_time={current_time}, i={i})"
+                #         )
+            # if DEBUG:
+            #     logger.debug(f"Skipping event {event.id} because it is already handled")
             processed_event_ids.add(event.id)
         time.sleep(timeout)
 

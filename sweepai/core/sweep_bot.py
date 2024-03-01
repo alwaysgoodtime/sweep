@@ -120,11 +120,11 @@ class CodeGenBot(ChatGPT):
     ) -> tuple[list[FileChangeRequest], str]:
         file_change_requests: list[FileChangeRequest] = []
         try:
-            if pr_diffs is not None:
-                self.delete_messages_from_chat("pr_diffs")
-                self.messages.insert(
-                    1, Message(role="user", content=pr_diffs, key="pr_diffs")
-                )
+            # if pr_diffs is not None:
+            #     self.delete_messages_from_chat("pr_diffs")
+            #     self.messages.insert(
+            #         1, Message(role="user", content=pr_diffs, key="pr_diffs")
+            #     )
 
             # pylint: disable=no-member
             # pylint: disable=access-member-before-definition
@@ -160,6 +160,10 @@ class CodeGenBot(ChatGPT):
                 )
                 self.ticket_progress.save()
             file_change_requests = []
+            print("----------------------------------")
+            print("查看回复")
+            print(files_to_change_response)
+            print("----------------------------------")
             for re_match in re.finditer(
                 FileChangeRequest._regex, files_to_change_response, re.DOTALL
             ):
@@ -635,6 +639,7 @@ class SweepBot(CodeGenBot, GithubBot):
         temperature: float = 0.1,
         assistant_conversation: AssistantConversation | None = None,
     ):
+        logger.info("进入modify_file")
         new_file = modify_file(
             self.cloned_repo,
             self.human_message.get_issue_metadata(),
@@ -756,8 +761,11 @@ class SweepBot(CodeGenBot, GithubBot):
 
         file_change_requests[i].status = "running"
 
+        logger.info("开始 change_files_in_github_iterator")
+
         while i < min(len(file_change_requests), 20):
             file_change_request = file_change_requests[i]
+            logger.info("打印需要新建和修改的文件")
             logger.print(file_change_request.change_type, file_change_request.filename)
             changed_file = False
 
@@ -771,12 +779,6 @@ class SweepBot(CodeGenBot, GithubBot):
                 commit = commit_messages.get(
                     file_change_request.change_type, "No commit message provided"
                 )
-                if is_blocked(file_change_request.filename, blocked_dirs)["success"]:
-                    logger.print(
-                        f"Skipping {file_change_request.filename} because it is blocked."
-                    )
-                    i += 1
-                    continue
 
                 logger.print(
                     f"Processing {file_change_request.filename} for change type"
@@ -1020,6 +1022,7 @@ class SweepBot(CodeGenBot, GithubBot):
         branch: str,
         changed_files: list[tuple[str, str]] = [],
     ):
+        logger.info("进入handle_create_file_main")
         file_change, sandbox_response = self.create_file(
             file_change_request, changed_files=changed_files
         )
@@ -1052,6 +1055,7 @@ class SweepBot(CodeGenBot, GithubBot):
         changed_files: list[tuple[str, str]] = [],
         assistant_conversation: AssistantConversation | None = None,
     ):
+        logger.info("进入handle_modify_file_main")
         CHUNK_SIZE = 10000  # Disable chunking for now
         sandbox_execution: SandboxResponse = None
         commit_message: str = None

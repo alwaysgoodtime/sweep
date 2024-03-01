@@ -120,6 +120,10 @@ def new_planning(
             ticket_progress.save()
 
         logger.info("Uploading file...")
+        logger.info("------------------------")
+        logger.info("zip_path"+zip_path)
+        logger.info("------------------------")
+
         zip_file_object = client.files.create(file=Path(zip_path), purpose="assistants")
         logger.info("Done uploading file.")
         zip_file_id = zip_file_object.id
@@ -136,6 +140,9 @@ def new_planning(
                 user_request=request, file_path=f"mnt/data/{zip_file_id}"
             ),
         )
+        logger.info("------------------------")
+        logger.info(response)
+        logger.info("------------------------")
         run_id = response.run_id
         thread_id = response.thread_id
         for _ in range(planning_iterations):
@@ -220,6 +227,7 @@ if __name__ == "__main__":
         new_planning(
             request,
             "/tmp/sweep_archive.zip",
+            additional_messages=additional_messages,
             chat_logger=ChatLogger(
                 {"username": "kevinlu1248", "title": "Unit test for planning"}
             ),

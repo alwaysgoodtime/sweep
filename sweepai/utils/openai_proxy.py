@@ -1,18 +1,16 @@
-import random
+import os
 
 from loguru import logger
 from openai import AzureOpenAI, OpenAI
 
 from sweepai.config.server import (
-    AZURE_API_KEY,
     BASERUN_API_KEY,
-    MULTI_REGION_CONFIG,
-    OPENAI_API_BASE,
     OPENAI_API_KEY,
     OPENAI_API_TYPE,
     OPENAI_API_VERSION,
 )
 from sweepai.logn.cache import file_cache
+from sweepai.utils.qwen_proxy import Qwen
 
 if BASERUN_API_KEY is not None:
     pass
@@ -25,62 +23,19 @@ OPENAI_EXCLUSIVE_MODELS = [
 ]
 SEED = 100
 
+USE_QWEN = os.environ.get("USE_QWEN",True)
+
 
 class OpenAIProxy:
     @file_cache(ignore_params=[])
     def call_openai(self, model, messages, max_tokens, temperature) -> str:
         try:
-            raise NotImplementedError("OpenAIProxy is not implemented")
-            engine = self.determine_openai_engine(model)
-            if OPENAI_API_TYPE is None or engine is None:
-                response = self.set_openai_default_api_parameters(
-                    model, messages, max_tokens, temperature
-                )
-                return response.choices[0].message.content
-            # validity checks for MULTI_REGION_CONFIG
-            if (
-                MULTI_REGION_CONFIG is None
-                or not isinstance(MULTI_REGION_CONFIG, list)
-                or len(MULTI_REGION_CONFIG) == 0
-                or not isinstance(MULTI_REGION_CONFIG[0], list)
-            ):
-                logger.info(
-                    f"Calling {model} with engine {engine} on Azure url {OPENAI_API_BASE}."
-                )
-                response = self.create_openai_chat_completion(
-                    engine,
-                    OPENAI_API_BASE,
-                    AZURE_API_KEY,
-                    model,
-                    messages,
-                    max_tokens,
-                    temperature,
-                )
-                return response.choices[0].message.content
-            # multi region config is a list of tuples of (region_url, api_key)
-            # we will try each region in order until we get a response
-            # randomize the order of the list
-            SHUFFLED_MULTI_REGION_CONFIG = random.sample(
-                MULTI_REGION_CONFIG, len(MULTI_REGION_CONFIG)
+            model = "gpt-3.5-turbo"
+            response = self.set_openai_default_api_parameters(
+                model, messages, max_tokens, temperature
             )
-            for region_url, api_key in SHUFFLED_MULTI_REGION_CONFIG:
-                try:
-                    logger.info(
-                        f"Calling {model} with engine {engine} on Azure url {region_url}."
-                    )
-                    response = self.create_openai_chat_completion(
-                        engine,
-                        region_url,
-                        api_key,
-                        model,
-                        messages,
-                        max_tokens,
-                        temperature,
-                    )
-                    return response.choices[0].message.content
-                except Exception as e:
-                    logger.exception(f"Error calling {region_url}: {e}")
-            raise Exception("No Azure regions available")
+            return response
+            # return response.choices[0].message.content
         except SystemExit:
             raise SystemExit
         except Exception as e:
@@ -111,6 +66,7 @@ class OpenAIProxy:
             engine = model
         elif model == "gpt-4-32k" or model == "gpt-4-32k-0613":
             engine = model
+
         return engine
 
     def create_openai_chat_completion(
@@ -135,11 +91,19 @@ class OpenAIProxy:
     ):
         client = OpenAI(api_key=OPENAI_API_KEY)
         response = client.chat.completions.create(
-            model=model,
+            model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
             timeout=OPENAI_TIMEOUT,
             seed=SEED,
         )
-        return response
+        logger.info("chatGpt3.5-turbo request message")
+        logger.info(messages)
+        logger.info("chatGpt3.5-turbo response")
+        logger.info(response)
+
+        # 修改为通义千问版本，并做比对
+        if USE_QWEN:
+            client = Qwen()
+            return client.call_qwen(messages)

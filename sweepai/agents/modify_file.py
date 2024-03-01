@@ -128,6 +128,7 @@ def modify_file(
     ticket_progress: TicketProgress | None = None,
     chat_logger: ChatLogger | None = None,
 ):
+    logger.info("进入真正的modify_file")
     new_file = None
     try:
         additional_messages = create_additional_messages(

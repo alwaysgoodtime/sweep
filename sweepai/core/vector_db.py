@@ -38,6 +38,7 @@ def chunk(texts: list[str], batch_size: int) -> Generator[list[str], None, None]
 
 @file_cache(ignore_params=["texts"])
 def get_query_texts_similarity(query: str, texts: str) -> float:
+    # 计算texts的相似度
     embeddings = embed_text_array(texts)
     embeddings = np.concatenate(embeddings)
     query_embedding = embed_text_array([query])[0]
@@ -79,6 +80,7 @@ def openai_call_embedding(batch):
     response = client.embeddings.create(
         input=batch, model="text-embedding-3-small", encoding_format="float"
     )
+    logger.info("openai_call_embedding")
     cut_dim = np.array([data.embedding for data in response.data])[:, :512]
     normalized_dim = normalize_l2(cut_dim)
     # save results to redis

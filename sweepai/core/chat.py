@@ -166,6 +166,8 @@ class ChatGPT(MessageList):
         temperature: float | None = None,
         max_tokens: int | None = None,
     ):
+        logger.info("又用了一次chat")
+        logger.info(content)
         self.messages.append(Message(role="user", content=content, key=message_key))
         model = model or self.model
         temperature = temperature or self.temperature or default_temperature
@@ -267,7 +269,7 @@ class ChatGPT(MessageList):
             try:
                 output = None
                 output = openai_proxy.call_openai(
-                    model=model,
+                    model="gpt-3.5-turbo",
                     messages=self.messages_dicts,
                     max_tokens=max_tokens - token_sub,
                     temperature=temperature,

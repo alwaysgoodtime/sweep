@@ -422,6 +422,13 @@ def run(request_dict, event):
     action = request_dict.get("action")
 
     with logger.contextualize(tracking_id="main", env=ENV):
+
+        print("---------------------------------------------------------------")
+        print("event =" + event)
+        if(action is not None):
+            print("action =" + action)
+        print("---------------------------------------------------------------")
+
         match event, action:
             case "check_run", "completed":
                 request = CheckRunCompleted(**request_dict)
@@ -604,6 +611,8 @@ def run(request_dict, event):
                         tracking_id=get_hash(),
                     )
             case "issues", "opened":
+                # 如果issues标题以sweep开头，看是否有标签，没有就贴
+
                 request = IssueRequest(**request_dict)
                 issue_title_lower = request.issue.title.lower()
                 if (
@@ -754,6 +763,9 @@ def run(request_dict, event):
                 else:
                     logger.info("Issue edited, but not a sweep issue")
             case "issues", "labeled":
+
+                print("这里是入口，一般流程新建issues且已经labeled会走到这里")
+
                 request = IssueRequest(**request_dict)
                 if (
                     any(
@@ -766,6 +778,7 @@ def run(request_dict, event):
                     request.repository.description = (
                         request.repository.description or ""
                     )
+                    # 进入主流程
                     call_on_ticket(
                         title=request.issue.title,
                         summary=request.issue.body,

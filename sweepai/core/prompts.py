@@ -189,7 +189,7 @@ Provide a plan to solve the issue, following these rules:
 * Use detailed, natural language instructions on what to modify regarding business logic, and reference files to import.
 * Be concrete with instructions and do not write "identify x" or "ensure y is done". Simply write "add x" or "change y to z".
 
-You MUST follow the following format with XML tags:
+You MUST follow the following format with XML tags. For example, if there is <create> tag, it MUST have a corresponding </create> tag.
 
 # Contextual Request Analysis:
 <contextual_request_analysis>
@@ -206,15 +206,11 @@ You MUST follow the following format with XML tags:
 * Reference necessary files, imports and entity names.
 ...
 </create>
-...
-
 <modify file="file_path_2" start_line="i" end_line="j" relevant_files="space-separated list of ALL files relevant for modifying file_path_2">
 * Natural language instructions for the modifications needed to solve the issue.
 * Be concise and reference necessary files, imports and entity names.
 ...
 </modify>
-...
-
 </plan>"""
 
 extract_files_to_change_prompt = """\

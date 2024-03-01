@@ -284,12 +284,13 @@ def get_relevant_context(
     ticket_progress: TicketProgress | None = None,
     chat_logger: ChatLogger = None,
 ):
-    model = (
-        "gpt-3.5-turbo-1106"
-        if (chat_logger is None or chat_logger.use_faster_model())
-        and not IS_SELF_HOSTED
-        else DEFAULT_GPT4_32K_MODEL
-    )
+    model = "gpt-3.5-turbo"
+    # model = (
+    #     "gpt-3.5-turbo-1106"
+    #     if (chat_logger is None or chat_logger.use_faster_model())
+    #     and not IS_SELF_HOSTED
+    #     else DEFAULT_GPT4_32K_MODEL
+    # )
     posthog.capture(
         chat_logger.data.get("username") if chat_logger is not None else "anonymous",
         "call_assistant_api",
@@ -299,6 +300,7 @@ def get_relevant_context(
         },
     )
     try:
+        print("Relevant Files Assistant确实用了")
         user_prompt = repo_context_manager.format_context(
             unformatted_user_prompt=unformatted_user_prompt,
             query=query,

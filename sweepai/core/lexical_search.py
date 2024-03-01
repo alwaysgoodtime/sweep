@@ -302,6 +302,9 @@ def prepare_lexical_search_index(
     ticket_progress: TicketProgress | None = None,
     ref_name: str | None = None,  # used for caching on different refs
 ):
+    print("-------------------------------------------------")
+    print("use prepared_lexical_search_index.py")
+    print("-------------------------------------------------")
     snippets, file_list = directory_to_chunks(repo_directory, sweep_config)
     index = prepare_index_from_snippets(
         snippets,

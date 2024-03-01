@@ -98,6 +98,7 @@ def create_pr_changes(
 
         blocked_dirs = get_blocked_dirs(sweep_bot.repo)
 
+        # 以下开始生成代码
         for (
             file_change_request,
             changed_file,
@@ -114,15 +115,15 @@ def create_pr_changes(
             yield file_change_request, changed_file, sandbox_error, commit, file_change_requests
         if completed_count == 0 and fcr_count != 0:
             logger.info("No changes made")
-            posthog.capture(
-                username,
-                "failed",
-                properties={
-                    "error": "No changes made",
-                    "reason": "No changes made",
-                    **metadata,
-                },
-            )
+            # posthog.capture(
+            #     username,
+            #     "failed",
+            #     properties={
+            #         "error": "No changes made",
+            #         "reason": "No changes made",
+            #         **metadata,
+            #     },
+            # )
 
             # If no changes were made, delete branch
             commits = sweep_bot.repo.get_commits(pull_request.branch_name)
